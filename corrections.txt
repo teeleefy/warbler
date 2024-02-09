@@ -1,1 +1,6 @@
 Corrections made to the Warbler App:
+1. In app.py, fixed the logout function. Updated do_logout to delete session of current user. Updated logout() view function to call do_logout() and flash a logout message.
+2. In templates/users/details.html, used jinja to access users methods to show users info on page.
+3. In followers.html, following.html, and index.html, showed bio by accessing users.bio with jinja.
+4. Edit Profile button: On app.py def profile(), updated to require login to view edit form and authenticate user by password and update edited profile details.
+5. Add location and bio to user model:

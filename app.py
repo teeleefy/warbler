@@ -112,9 +112,11 @@ def login():
 @app.route('/logout')
 def logout():
     """Handle logout of user."""
-
+    
     # IMPLEMENT THIS
-
+    do_logout();
+    flash('You have logged out.', 'success')
+    return redirect('/login')
 
 ##############################################################################
 # General user routes:
@@ -210,9 +212,30 @@ def stop_following(follow_id):
 @app.route('/users/profile', methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
-
+    
     # IMPLEMENT THIS
-
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    user = User.query.get(g.user.id)
+    form = UserAddForm(obj=user)
+    if form.validate_on_submit():
+        auth_user = User.authenticate(g.user.username,
+                                 form.password.data)
+        if auth_user:
+            if form.username.data:
+                user.username=form.username.data
+            if form.email.data:
+                user.email=form.email.data
+            if form.image_url.data:
+                user.image_url=form.image_url.data
+            db.session.add(user)
+            db.session.commit()
+            flash("User updated.", 'success')
+            return redirect(f"/users/{g.user.id}")
+        else:
+            flash("Invalid credentials.", 'danger')
+    return render_template('/users/edit.html', form = form)
 
 @app.route('/users/delete', methods=["POST"])
 def delete_user():
