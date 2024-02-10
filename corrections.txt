@@ -3,4 +3,9 @@ Corrections made to the Warbler App:
 2. In templates/users/details.html, used jinja to access users methods to show users info on page.
 3. In followers.html, following.html, and index.html, showed bio by accessing users.bio with jinja.
 4. Edit Profile button: On app.py def profile(), updated to require login to view edit form and authenticate user by password and update edited profile details.
-5. Add location and bio to user model:
+5. Added location and bio to user form in forms.py.  Edited login and update user functions to add bio and location when submitted.
+6. Edited app.py homepage() function to only show messages by self and by who user is following
+7. Fixed cancel-button on edit profile page.  Made it redirect to user profile. 
+8. Added functionality to like icons next to messages. Edited it to where only messages not posted by user will have like icon.  When clicked, like icon will basically toggle(add or delete) that message from users.likes.
+9. In app.py and /templates/users/likes.html, made view function to show all user's likes.
+10. In app.py and /templates/404.html, made a customized 404 page.

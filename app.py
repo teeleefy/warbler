@@ -3,9 +3,9 @@ import pdb
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
-
+from sqlalchemy import or_, and_
 from forms import UserAddForm, LoginForm, MessageForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -18,7 +18,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
 
@@ -74,6 +74,8 @@ def signup():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
+                bio=form.bio.data,
+                location=form.location.data
             )
             db.session.commit()
 
@@ -229,6 +231,10 @@ def profile():
                 user.email=form.email.data
             if form.image_url.data:
                 user.image_url=form.image_url.data
+            if form.bio.data:
+                user.bio=form.bio.data
+            if form.location.data:
+                user.location=form.location.data
             db.session.add(user)
             db.session.commit()
             flash("User updated.", 'success')
@@ -316,13 +322,15 @@ def homepage():
     """
 
     if g.user:
+        following_ids =[followed.id for followed in g.user.following]
         messages = (Message
                     .query
+                    .filter(or_(Message.user_id == g.user.id, Message.user_id.in_(following_ids)))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-
-        return render_template('home.html', messages=messages)
+        likes = [liked.id for liked in g.user.likes]
+        return render_template('home.html', messages=messages, likes = likes)
 
     else:
         return render_template('home-anon.html')
@@ -334,6 +342,36 @@ def homepage():
 #   handled elsewhere)
 #
 # https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
+
+@app.route('/users/add_like/<int:msg_id>', methods=['POST'])
+def add_like(msg_id):
+    '''Handle adding and removing likes'''
+    msg= Message.query.get_or_404(msg_id)
+    if not msg.user_id == g.user.id:
+        if msg in g.user.likes:
+            unlike = Likes.query.filter(and_(Likes.user_id==g.user.id, Likes.message_id==msg.id)).first()
+            db.session.delete(unlike)
+            db.session.commit()
+            return redirect(request.referrer)
+        new_like = Likes(user_id=g.user.id, message_id=msg_id)
+        db.session.add(new_like)
+        db.session.commit()
+        return redirect(request.referrer)
+    flash('Sorry. Cannot like own messages.', 'danger')
+    return redirect(request.referrer)
+
+@app.route('/likes')
+def show_likes():
+    '''Show likes'''
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    likes = g.user.likes
+    return render_template('/users/likes.html', likes = likes)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 @app.after_request
 def add_header(req):
