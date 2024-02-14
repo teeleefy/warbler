@@ -9,3 +9,7 @@ Corrections made to the Warbler App:
 8. Added functionality to like icons next to messages. Edited it to where only messages not posted by user will have like icon.  When clicked, like icon will basically toggle(add or delete) that message from users.likes.
 9. In app.py and /templates/users/likes.html, made view function to show all user's likes.
 10. In app.py and /templates/404.html, made a customized 404 page.
+11. In index.html, fixed unfollow button.  The "action" attribute was outside of the form tag, and the 'unfollow' button was outside of the form.
+12. Added likes to other users' pages so that g.user may like their messages when viewing other users' profiles.
+13. Changed search function in nav bar to 'ilike' to find users regardless of capitalization of username. 
+14. On index.html, removed follow button for g.user so user cannot follow himself. 

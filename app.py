@@ -74,13 +74,14 @@ def signup():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
+                header_image_url=form.header_image_url.data or User.header_image_url.default.arg,
                 bio=form.bio.data,
                 location=form.location.data
             )
             db.session.commit()
 
         except IntegrityError:
-            flash("Username already taken", 'danger')
+            flash("Username or email already taken.", 'danger')
             return render_template('users/signup.html', form=form)
 
         do_login(user)
@@ -135,7 +136,7 @@ def list_users():
     if not search:
         users = User.query.all()
     else:
-        users = User.query.filter(User.username.like(f"%{search}%")).all()
+        users = User.query.filter(User.username.ilike(f"%{search}%")).all()
 
     return render_template('users/index.html', users=users)
 
@@ -145,7 +146,7 @@ def users_show(user_id):
     """Show user profile."""
 
     user = User.query.get_or_404(user_id)
-
+    likes = [liked.id for liked in g.user.likes]
     # snagging messages in order from the database;
     # user.messages won't be in order by default
     messages = (Message
@@ -154,7 +155,7 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    return render_template('users/show.html', user=user, messages=messages)
+    return render_template('users/show.html', user=user, messages=messages, likes =likes)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -188,11 +189,12 @@ def add_follow(follow_id):
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
-
+    if g.user.id == follow_id:
+        flash('Sorry.You cannot follow yourself.', 'danger')
+        return redirect(f"/users/{g.user.id}")
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
     db.session.commit()
-
     return redirect(f"/users/{g.user.id}/following")
 
 
@@ -231,6 +233,8 @@ def profile():
                 user.email=form.email.data
             if form.image_url.data:
                 user.image_url=form.image_url.data
+            if form.header_image_url:
+                user.header_image_url=form.header_image_url.data
             if form.bio.data:
                 user.bio=form.bio.data
             if form.location.data:
@@ -301,8 +305,10 @@ def messages_destroy(message_id):
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
-
     msg = Message.query.get(message_id)
+    if not g.user.id == msg.user_id:
+        flash("Access unauthorized. You cannot delete another user's post.", "danger")
+        return redirect("/")
     db.session.delete(msg)
     db.session.commit()
 

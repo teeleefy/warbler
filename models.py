@@ -131,19 +131,22 @@ class User(db.Model):
         return len(found_user_list) == 1
 
     @classmethod
-    def signup(cls, username, email, password, image_url):
+    def signup(cls, username, email, password, image_url=None, bio=None, location=None, header_image_url=None):
         """Sign up user.
 
         Hashes password and adds user to system.
         """
 
-        hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
-
+        pwd = bcrypt.generate_password_hash(password)
+        utf8_pwd= pwd.decode('utf8')
         user = User(
             username=username,
             email=email,
-            password=hashed_pwd,
+            password=utf8_pwd,
             image_url=image_url,
+            header_image_url=header_image_url,
+            bio=bio,
+            location=location
         )
 
         db.session.add(user)
@@ -166,7 +169,8 @@ class User(db.Model):
             is_auth = bcrypt.check_password_hash(user.password, password)
             if is_auth:
                 return user
-
+            else:
+                return False
         return False
 
 
